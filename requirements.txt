@@ -1,0 +1,7 @@
+pyyaml
+numpy
+scikit-learn
+geoip2
+pyproj
+slackclient
+google-api-python-client
