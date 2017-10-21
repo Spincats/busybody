@@ -18,7 +18,7 @@ Once that is complete, move into the new `busybodyenv` (or whatever you named yo
 
 Now that we're in the environment, please download `busybody` from your choice of source. For example:
 
-> $(busybodyenv) git clone git@github.com:bobthesecurityguy/busybodyy.git
+> $(busybodyenv) git clone git@github.com:Spincats/busybody.git
 
 Now move into that new directory and install `busbody`'s requirements:
 
