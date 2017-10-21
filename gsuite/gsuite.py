@@ -13,6 +13,7 @@ USER_AGENT_FIELD = "events.0.login_type"
 FILTER_FIELD = "events.0.name"
 FILTERED_EVENTS = ["login_failure"]
 
+
 def poll(config):
     data = []
     scopes = ['https://www.googleapis.com/auth/admin.reports.audit.readonly']
@@ -51,7 +52,7 @@ def flatten(event, prefix=''):
     flattened = {}
     for field_no, field in enumerate(event):
         if 'keys' in dir(event):
-            #Special case "parameters" values. We should to treat those as dicts.
+            # Special case "parameters" values. We should to treat those as dicts.
             if field == "parameters":
                 for param in event[field]:
                     if isinstance(param["value"], Iterable) and not isinstance(param["value"], str):
@@ -59,7 +60,7 @@ def flatten(event, prefix=''):
                     else:
                         flattened[prefix + param["name"]] = param["value"]
                 continue
-            else:        
+            else:
                 nextLevel = event[field]
                 currEntry = prefix + str(field)
         else:

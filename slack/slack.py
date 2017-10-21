@@ -37,14 +37,30 @@ def poll(config):
 
 
 def notify(config, alerts):
+    if "channel" not in config["notifiers"]["slack"]:
+        raise RuntimeError("Slack configured to notify, but no channel specified.")
+    slack_api = SlackClient(config["notifiers"]["slack"]["api_token"])
+    heading = "Busybody has noted a suspicious event!"
+    for alert in alerts:
+        attachment = [{
+            "fallback": heading + "\n" + alert,
+            "title": heading,
+            "text": alert,
+            "color": "#ffe600"
+        }]
+        result = slack_api.api_call("chat.postMessage",
+                                    channel=config["notifiers"]["slack"]["output_channel"],
+                                    attachments=attachment, as_user=True)
+        check_api(result)
     return
 
 
 def check_api(data):
     if not data["ok"]:
-        raise RuntimeError("Slack API returned an error: "+str(data))
+        raise RuntimeError("Slack API returned an error: " + str(data))
     else:
         return
+
 
 def enrich(config, data):
     unique_users = list(set([e["user_id"] for e in data]))
@@ -62,7 +78,7 @@ def enrich(config, data):
         elif "profile" in user_info["user"] and "email" in user_info["user"]["profile"]:
             user_map[user] = user_info["user"]["profile"]["email"]
             logger.debug("Mapping user %s to %s." % (user, user_map[user]))
-    new_data = []    
+    new_data = []
     for entry in data:
         if entry["user_id"] in user_map:
             entry["email"] = user_map[entry["user_id"]]

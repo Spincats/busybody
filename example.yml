@@ -1,0 +1,22 @@
+persistence:
+  module: flatfile
+  log_directory: /var/log/busybody 
+pollers:
+  slack:
+    api_token: xoxp-1234567890-1234567890-123456789012-deadbeef0000deadbeef0000deadbeef
+  gsuite:
+    admin_email: admin@example.com
+    credential_file: /etc/busybody/gsuite.json
+analysis:
+  slack:
+    user_map:
+      example.personaluser@gmail.com: user@example.com
+  gsuite:
+    enabled: True
+  geoip:
+    city_db: /etc/busybody/GeoLite2-City.mmdb
+    asn_db: /etc/busybody/GeoLite2-ASN.mmdb
+notifiers:
+  slack:
+    api_token: xoxb-123456789012-stringofradomlookingbits
+    channel: general

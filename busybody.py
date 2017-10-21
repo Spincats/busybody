@@ -15,7 +15,7 @@ from sklearn.preprocessing import scale
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import IsolationForest
 
-program_version = "0.1"
+program_version = "1.0"
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ def poll(config):
 
 def load_historical(config):
     if "persistence" in config["active_modules"] and config["active_modules"]["persistence"]:
-        persist_module = getattr(sys.modules[config["active_modules"]["persistence"]], 
+        persist_module = getattr(sys.modules[config["active_modules"]["persistence"]],
                                  config["active_modules"]["persistence"])
         get_last_func = getattr(persist_module, "get_last")
         config = get_last_func(config)
@@ -67,7 +67,9 @@ def preprocess(config, data):
             if filter_field:
                 if event[filter_field] in poll_mod.FILTERED_EVENTS:
                     continue
-            if not ts_field in event or not event[ts_field] or not user_field in event or not event[user_field] or not ip_field in event or not event[ip_field] or not ua_field in event or not event[ua_field]:
+            if ts_field not in event or not event[ts_field] or user_field not in event or \
+               not event[user_field] or ip_field not in event or not event[ip_field] or \
+               ua_field not in event or not event[ua_field]:
                 continue
             if type(event[ts_field]) == str:
                 ts = datetime.timestamp(datetime.strptime(event[ts_field], '%Y-%m-%dT%H:%M:%S.%fZ'))
@@ -108,13 +110,13 @@ def preprocess(config, data):
 
 def analyze(config, data):
     alerts = []
-    last_anlyzed = 0
+    last_analyzed = 0
     if "persistence" in config["active_modules"] and config["active_modules"]["persistence"]:
         persist_module = getattr(sys.modules[config["active_modules"]["persistence"]],
                                  config["active_modules"]["persistence"])
         last_analyzed_func = getattr(persist_module, "get_last_analyzed")
         persist_analyzed_func = getattr(persist_module, "persist_last_analyzed")
-        last_analyzed = last_analyzed_func(config)                
+        last_analyzed = last_analyzed_func(config)
     # get unique list of users across data
     unique_users = list(set([e[2] for e in data]))
     logger.debug("Unique users: %s" % len(unique_users))
@@ -154,13 +156,19 @@ def analyze(config, data):
                 flagged += 1
                 alerts.append(user_events[ev_no][1])
         logger.debug("Processed %s: %s of %s flagged." % (user, flagged, len(user_events)))
-    for alert in alerts:
-        logger.info(alert)
+    if "notifiers" in config["active_modules"]:
+        for module in config["active_modules"]["notifiers"]:
+            notify_mod = getattr(sys.modules[module], module)
+            notify_func = getattr(notify_mod, "notify")
+            notify_func(config, alerts)
+    else:
+        for alert in alerts:
+            logger.info(alert)
     persist_analyzed_func(config, data[-1][0])
-    
+
 
 def latlon_to_xyz(lat, lon):
-    phi   = (90 - lat) * (numpy.pi / 180)
+    phi = (90 - lat) * (numpy.pi / 180)
     theta = (lon + 180) * (numpy.pi / 180)
 
     x = 0 - (numpy.sin(phi) * numpy.cos(theta))
@@ -179,7 +187,7 @@ def load_config(config_path):
         if homeconfig.is_file():
             config_file = homeconfig
         elif scriptconfig.is_file():
-            config_file = sriptconfig
+            config_file = scriptconfig
         else:
             raise RuntimeError("No configuration file found.")
     with config_file.open() as f:
@@ -189,14 +197,14 @@ def load_config(config_path):
 
 def load_modules(config):
     config["active_modules"] = {}
-    if not "pollers" in config or not config["pollers"]:
+    if "pollers" not in config or not config["pollers"]:
         raise RuntimeError("Polllers aren't optional.")
     config["active_modules"]["pollers"] = []
     for poller in config["pollers"]:
         importlib.import_module(poller, poller)
         config["active_modules"]["pollers"].append(poller)
     if config["mode"] is None or config["mode"] == "analyze":
-        if not "notifiers" in config or not config["notifiers"]:
+        if "notifiers" not in config or not config["notifiers"]:
             raise RuntimeError("Configured to analyze, but no notifiers in config file.")
         config["active_modules"]["notifiers"] = []
         for notifier in config["notifiers"]:
@@ -204,15 +212,15 @@ def load_modules(config):
             config["active_modules"]["notifiers"].append(notifier)
     if "persistence" in config and config["persistence"]:
         if "module" in config["persistence"] and config["persistence"]["module"]:
-             importlib.import_module(config["persistence"]["module"],
-                                     config["persistence"]["module"])
-             config["active_modules"]["persistence"] = config["persistence"]["module"]
+            importlib.import_module(config["persistence"]["module"],
+                                    config["persistence"]["module"])
+            config["active_modules"]["persistence"] = config["persistence"]["module"]
         else:
             raise RuntimeError("Persistence is configured, but no module specified.")
     return config
 
 
-#INIT STUFF/CONTROL LOOP
+# INIT STUFF/CONTROL LOOP
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="Busybody",
                                      description="Neighborhood watch for your SaaS apps.")

@@ -5,6 +5,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+
 def get_last(config):
     if "log_directory" not in config["persistence"] or not config["persistence"]["log_directory"]:
         raise RuntimeError("Flat file persistence requested, but no log_directory specified.")
@@ -50,7 +51,7 @@ def get_historical_data(config):
         raise RuntimeError("Flat file persistence requested, but no log_directory specified.")
     log_dir = Path(config["persistence"]["log_directory"])
     log_dir.mkdir(mode=0o775, parents=True, exist_ok=True)
-    if not "pollers" in config:
+    if "pollers" not in config:
         return data
     for module in config["active_modules"]["pollers"]:
         data[module] = []
@@ -68,6 +69,7 @@ def get_historical_data(config):
                 if str(event[ts_field]) >= str(limit):
                     data[module].append(event)
     return data
+
 
 def get_last_analyzed(config):
     if "log_directory" not in config["persistence"] or not config["persistence"]["log_directory"]:

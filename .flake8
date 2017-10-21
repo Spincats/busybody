@@ -1,0 +1,5 @@
+[flake8]
+exclude = .git
+# F401: Unused imports used conditionally (so not really unused)
+# E501: 79 character limit is impractical with a 4 space indent...
+ignore = F401,E501
