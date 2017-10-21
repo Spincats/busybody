@@ -27,10 +27,10 @@ def poll(config):
         activities = results.get('items', [])
         for event in activities:
             flattened = flatten(event)
-            if flattened[TIMESTAMP_FIELD] > str(config["pollers"]["gsuite"]["last_polled_time"]):
+            if flattened[TIMESTAMP_FIELD] > str(config["last_polled"]["gsuite"]["last_polled_time"]):
                 data.append(flattened)
-            elif flattened[TIMESTAMP_FIELD] == str(config["pollers"]["gsuite"]["last_polled_time"]):
-                if flattened["id.uniqueQualifier"] == config["pollers"]["gsuite"]["last_polled_event"]["id.uniqueQualifier"]:
+            elif flattened[TIMESTAMP_FIELD] == str(config["last_polled"]["gsuite"]["last_polled_time"]):
+                if flattened["id.uniqueQualifier"] == config["last_polled"]["gsuite"]["last_polled_event"]["id.uniqueQualifier"]:
                     caught_up = True
                     break
                 else:

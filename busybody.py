@@ -71,7 +71,7 @@ def preprocess(config, data):
                not event[user_field] or ip_field not in event or not event[ip_field] or \
                ua_field not in event or not event[ua_field]:
                 continue
-            if type(event[ts_field]) == str:
+            if type(event[ts_field]) == str and "T" in event[ts_field]:
                 ts = datetime.timestamp(datetime.strptime(event[ts_field], '%Y-%m-%dT%H:%M:%S.%fZ'))
             else:
                 ts = event[ts_field]

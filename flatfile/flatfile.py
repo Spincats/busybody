@@ -2,6 +2,7 @@ import sys
 import json
 import logging
 from pathlib import Path
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -11,24 +12,31 @@ def get_last(config):
         raise RuntimeError("Flat file persistence requested, but no log_directory specified.")
     log_dir = Path(config["persistence"]["log_directory"])
     log_dir.mkdir(mode=0o775, parents=True, exist_ok=True)
+    modules = set()
     if "pollers" in config and config["pollers"]:
-        for module in config["active_modules"]["pollers"]:
-            poll_mod = getattr(sys.modules[module], module)
-            ts_field = poll_mod.TIMESTAMP_FIELD
-            log_file = log_dir / (module + ".log")
-            log_file.touch(mode=0o660, exist_ok=True)
-            last = ""
-            with log_file.open('r') as f:
-                for line in f:
-                    if len(line) > 3:
-                        last = line
-            if last:
-                last_event = json.loads(last)
-                config["pollers"][module]["last_polled_time"] = last_event[ts_field]
-                config["pollers"][module]["last_polled_event"] = last_event
-            else:
-                config["pollers"][module]["last_polled_time"] = 0
-                config["pollers"][module]["last_polled_event"] = {}
+        modules.update(config["active_modules"]["pollers"])
+    if "analysis" in config and config["analysis"]:
+        modules.update(config["active_modules"]["analysis"])
+    for module in modules:
+        config_mod = getattr(sys.modules[module], module)
+        ts_field = config_mod.TIMESTAMP_FIELD
+        log_file = log_dir / (module + ".log")
+        log_file.touch(mode=0o660, exist_ok=True)
+        last = ""
+        with log_file.open('r') as f:
+            for line in f:
+                if len(line) > 3:
+                    last = line
+        if "last_polled" not in config:
+            config["last_polled"] = {}
+        config["last_polled"][module] = {}
+        if last:
+            last_event = json.loads(last)
+            config["last_polled"][module]["last_polled_time"] = last_event[ts_field]
+            config["last_polled"][module]["last_polled_event"] = last_event
+        else:
+            config["last_polled"][module]["last_polled_time"] = 0
+            config["last_polled"][module]["last_polled_event"] = {}
     return config
 
 
@@ -51,14 +59,17 @@ def get_historical_data(config):
         raise RuntimeError("Flat file persistence requested, but no log_directory specified.")
     log_dir = Path(config["persistence"]["log_directory"])
     log_dir.mkdir(mode=0o775, parents=True, exist_ok=True)
-    if "pollers" not in config:
+    if "analysis" not in config:
         return data
-    for module in config["active_modules"]["pollers"]:
+    for module in config["active_modules"]["analysis"]:
         data[module] = []
-        poll_mod = getattr(sys.modules[module], module)
-        ts_field = poll_mod.TIMESTAMP_FIELD
+        analysis_mod = getattr(sys.modules[module], module)
+        ts_field = analysis_mod.TIMESTAMP_FIELD
         if "history_limit" in config:
-            limit = max(0, config["pollers"][module]["last_polled_time"] - config["history_limit"])
+            last_time = config["last_polled"][module]["last_polled_time"]
+            if type(last_time) == str and "T" in last_time:
+                last_time = datetime.timestamp(datetime.strptime(last_time, '%Y-%m-%dT%H:%M:%S.%fZ'))
+            limit = max(0, last_time - config["history_limit"])
         else:
             limit = 0
         log_file = log_dir / (module + ".log")
@@ -66,7 +77,10 @@ def get_historical_data(config):
         with log_file.open('r') as f:
             for line in f:
                 event = json.loads(line)
-                if str(event[ts_field]) >= str(limit):
+                timestamp = event[ts_field]
+                if type(timestamp) == str and "T" in timestamp:
+                    timestamp = datetime.timestamp(datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ'))
+                if str(timestamp) >= str(limit):
                     data[module].append(event)
     return data
 

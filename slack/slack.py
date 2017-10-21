@@ -19,10 +19,10 @@ def poll(config):
         api_data = slack_api.api_call("team.accessLogs", count=1000, page=i)
         check_api(api_data)
         for event in api_data["logins"]:
-            if event[TIMESTAMP_FIELD] > config["pollers"]["slack"]["last_polled_time"]:
+            if event[TIMESTAMP_FIELD] > config["last_polled"]["slack"]["last_polled_time"]:
                 data.append(event)
-            elif event[TIMESTAMP_FIELD] == config["pollers"]["slack"]["last_polled_time"]:
-                if str(event) == str(config["pollers"]["slack"]["last_polled_event"]):
+            elif event[TIMESTAMP_FIELD] == config["last_polled"]["slack"]["last_polled_time"]:
+                if str(event) == str(config["last_polled"]["slack"]["last_polled_event"]):
                     caught_up = True
                     break
                 else:
